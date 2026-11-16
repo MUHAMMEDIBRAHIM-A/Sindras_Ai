@@ -12,8 +12,8 @@ void main() {
       expect(AgentProvider.deepseek.label, 'DeepSeek');
     });
 
-    test('MultiAgentType contains 14 specialized agent roles', () {
-      expect(MultiAgentType.values.length, 14);
+    test('MultiAgentType contains 17 specialized agent roles', () {
+      expect(MultiAgentType.values.length, 17);
       final categories = MultiAgentType.byCategory;
       expect(categories.containsKey('General'), true);
       expect(categories.containsKey('Code'), true);
