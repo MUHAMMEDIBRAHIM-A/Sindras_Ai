@@ -3,18 +3,22 @@ import '../agent_screen.dart';
 import '../jarvis/jarvis_screen.dart';
 import '../multi_agent/multi_agent_screen.dart';
 import '../services/auth_service.dart';
+import '../theme/theme_notifier.dart';
 import 'documents_screen.dart';
 import 'login_screen.dart';
 import 'rag_chat_screen.dart';
+import 'settings_screen.dart';
 
 /// Home screen with bottom navigation.
 /// Tab 0: SINRAS PRO OS (Voice HUD & Mobile Device Controller)
 /// Tab 1: Multi-Agent Engine (Gemini, Groq/SINRAS/FRIDAY, DeepSeek)
-/// Tab 2: Classic Agent Screen
-/// Tab 3: RAG Chat (document Q&A with citations)
-/// Tab 4: Documents (upload & manage knowledge base)
+/// Tab 2: RAG Chat (document Q&A with citations)
+/// Tab 3: Documents (upload & manage knowledge base)
+/// Tab 4: Settings & Configuration
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final ThemeNotifier? themeNotifier;
+
+  const HomeScreen({super.key, this.themeNotifier});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -22,14 +26,21 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  late final ThemeNotifier _notifier;
 
-  final List<Widget> _screens = const [
-    JarvisScreen(), // Flagship SINRAS PRO Mobile Voice & OS Controller
-    MultiAgentScreen(), // Multi-Provider Agent System
-    AgentScreen(apiKey: 'YOUR_GEMINI_API_KEY'), // Classic Agent
-    RagChatScreen(),
-    DocumentsScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _notifier = widget.themeNotifier ?? ThemeNotifier();
+  }
+
+  List<Widget> get _screens => [
+        const JarvisScreen(), // Flagship SINRAS PRO Mobile Voice & OS Controller
+        const MultiAgentScreen(), // Multi-Provider Agent System
+        const RagChatScreen(),
+        const DocumentsScreen(),
+        SettingsScreen(themeNotifier: _notifier), // Settings & Day/Night Theme Switcher
+      ];
 
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
@@ -87,11 +98,6 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Multi-Agent',
           ),
           NavigationDestination(
-            icon: Icon(Icons.smart_toy_outlined),
-            selectedIcon: Icon(Icons.smart_toy_rounded),
-            label: 'Agent',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.question_answer_outlined),
             selectedIcon: Icon(Icons.question_answer_rounded),
             label: 'RAG Chat',
@@ -100,6 +106,11 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: Icon(Icons.folder_outlined),
             selectedIcon: Icon(Icons.folder_rounded),
             label: 'Documents',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings_rounded),
+            label: 'Settings',
           ),
           NavigationDestination(
             icon: Icon(Icons.logout_rounded),
