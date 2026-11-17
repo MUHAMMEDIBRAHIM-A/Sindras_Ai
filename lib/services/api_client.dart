@@ -41,7 +41,8 @@ class ApiClient {
 
   /// GET request.
   static Future<http.Response> get(String path, {bool auth = true}) async {
-    final url = Uri.parse('${AppConfig.backendBaseUrl}$path');
+    final baseUrl = await AppConfig.getBackendBaseUrl();
+    final url = Uri.parse('$baseUrl$path');
     final headers = await _headers(auth: auth);
     return http.get(url, headers: headers);
   }
@@ -52,14 +53,16 @@ class ApiClient {
     Map<String, dynamic>? body,
     bool auth = true,
   }) async {
-    final url = Uri.parse('${AppConfig.backendBaseUrl}$path');
+    final baseUrl = await AppConfig.getBackendBaseUrl();
+    final url = Uri.parse('$baseUrl$path');
     final headers = await _headers(auth: auth);
     return http.post(url, headers: headers, body: jsonEncode(body));
   }
 
   /// DELETE request.
   static Future<http.Response> delete(String path, {bool auth = true}) async {
-    final url = Uri.parse('${AppConfig.backendBaseUrl}$path');
+    final baseUrl = await AppConfig.getBackendBaseUrl();
+    final url = Uri.parse('$baseUrl$path');
     final headers = await _headers(auth: auth);
     return http.delete(url, headers: headers);
   }
@@ -71,7 +74,8 @@ class ApiClient {
     String fieldName, {
     String? filename,
   }) async {
-    final url = Uri.parse('${AppConfig.backendBaseUrl}$path');
+    final baseUrl = await AppConfig.getBackendBaseUrl();
+    final url = Uri.parse('$baseUrl$path');
     final request = http.MultipartRequest('POST', url);
 
     final token = await getToken();

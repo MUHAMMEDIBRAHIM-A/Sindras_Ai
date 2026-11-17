@@ -4,6 +4,7 @@ import '../multi_agent/agent_provider.dart';
 import '../multi_agent/multi_agent_models.dart';
 import '../multi_agent/multi_agent_storage.dart';
 import '../theme/theme_notifier.dart';
+import 'allowed_apps_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final ThemeNotifier themeNotifier;
@@ -183,6 +184,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
 
           const SizedBox(height: 16),
+
+          // ── SECTION 3: ZERO-TRUST SECURITY & ALLOWED APPS ─────────────
+          _buildSectionHeader(context, 'ZERO-TRUST SECURITY & APPS', Icons.shield_rounded),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.security_rounded, color: Color(0xFF00E5FF)),
+              title: const Text('Allowed Apps (Whitelisting)'),
+              subtitle: const Text('Select which installed apps SINRAS PRO AI can automate. Banking & UPI apps remain locked.'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AllowedAppsScreen()),
+                );
+              },
+            ),
+          ),
 
           // ── SECTION 3: SINRAS PRO OS PREFERENCES ─────────────────────
           _buildSectionHeader(context, 'SINRAS PRO OS FEEDBACK', Icons.graphic_eq_rounded),

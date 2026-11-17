@@ -17,7 +17,8 @@
 9. [🚀 A to Z Setup & Installation Guide](#-a-to-z-setup--installation-guide)
 10. [📊 API Reference & Endpoint Specification](#-api-reference--endpoint-specification)
 11. [🛠️ Standalone Python GitHub PR Reviewer Agent](#️-standalone-python-github-pr-reviewer-agent)
-12. [📜 License & Credits](#-license--credits)
+12. [🏗️ Six-Layer AI Stack & 5-in-1 Production Architecture](AI_STACK_GUIDE.md)
+13. [📜 License & Credits](#-license--credits)
 
 ---
 

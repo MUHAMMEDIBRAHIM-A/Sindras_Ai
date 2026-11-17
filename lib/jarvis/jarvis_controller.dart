@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Result of executing a SINRAS PRO mobile OS tool action.
@@ -18,11 +19,33 @@ class JarvisActionResult {
 }
 
 /// Mobile System Controller PRO for SINRAS PRO.
-/// Handles Android/iOS system actions, package app launchers, auto-tests, and exit controls.
+/// Handles Android/iOS system actions, package app launchers, zero-trust whitelisting,
+/// Accessibility Service automation, and exit controls.
 class JarvisController {
+  static const _privacyChannel = MethodChannel('sinras/privacy');
+  static const _appsChannel = MethodChannel('sinras/apps');
+  static const _automationChannel = MethodChannel('sinras/automation');
+
   /// Exit application cleanly.
   static Future<void> exitApp() async {
     await SystemNavigator.pop();
+  }
+
+  /// Check if a package is whitelisted in Allowed Apps and not a banking/payment app.
+  static Future<bool> isPackageAllowed(String packageName) async {
+    final lower = packageName.lowercase;
+    if (lower.contains('gpay') ||
+        lower.contains('phonepe') ||
+        lower.contains('paytm') ||
+        lower.contains('bank') ||
+        lower.contains('upi') ||
+        lower.contains('cred') ||
+        lower.contains('finance')) {
+      return false; // Strictly blocked
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('allowed_app_$packageName') ?? true;
   }
 
   /// Execute an intent or system action requested by SINRAS PRO.
@@ -65,7 +88,31 @@ class JarvisController {
 
       case 'open_app':
         final appName = params['app_name']?.toString() ?? '';
+        final pkg = params['package']?.toString() ?? '';
+        if (pkg.isNotEmpty) {
+          final allowed = await isPackageAllowed(pkg);
+          if (!allowed) {
+            return const JarvisActionResult(
+              success: false,
+              actionName: 'open_app',
+              message: 'Access denied: App is not whitelisted or is privacy locked. Please enable in Settings -> Allowed Apps.',
+            );
+          }
+        }
         return _launchAppByName(appName);
+
+      case 'send_whatsapp_message':
+        final contact = params['contact']?.toString() ?? '';
+        final message = params['message']?.toString() ?? '';
+        final allowed = await isPackageAllowed('com.whatsapp');
+        if (!allowed) {
+          return const JarvisActionResult(
+            success: false,
+            actionName: 'send_whatsapp_message',
+            message: 'Access denied: WhatsApp is disabled in Settings -> Allowed Apps.',
+          );
+        }
+        return await prepareWhatsAppAutomation(contact, message);
 
       case 'get_system_info':
         return _getSystemInfo();
@@ -88,6 +135,36 @@ class JarvisController {
           actionName: action,
           message: 'Action executed: $action',
         );
+    }
+  }
+
+  /// Prepare WhatsApp message UI via Accessibility Service without sending yet.
+  static Future<JarvisActionResult> prepareWhatsAppAutomation(String contact, String message) async {
+    try {
+      final success = await _automationChannel.invokeMethod<bool>('prepareWhatsAppMessage', {
+        'contact': contact,
+        'message': message,
+      }) ?? false;
+
+      if (success) {
+        return JarvisActionResult(
+          success: true,
+          actionName: 'prepare_whatsapp',
+          message: 'WhatsApp opened and message prepared for $contact. Awaiting voice confirmation.',
+          data: {'contact': contact, 'message': message},
+        );
+      }
+    } catch (_) {}
+
+    return _launchExternalUrl('https://wa.me/?text=${Uri.encodeComponent(message)}');
+  }
+
+  /// Execute final send click after human voice confirmation.
+  static Future<bool> confirmAndSendClick() async {
+    try {
+      return await _automationChannel.invokeMethod<bool>('clickByText', {'text': 'Send'}) ?? false;
+    } catch (_) {
+      return false;
     }
   }
 

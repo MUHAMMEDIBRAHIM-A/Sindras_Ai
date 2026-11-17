@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:flutter_tts/flutter_tts.dart';
 import '../multi_agent/agent_provider.dart';
 import '../multi_agent/multi_agent_models.dart';
 import '../multi_agent/multi_agent_storage.dart';
@@ -14,28 +17,67 @@ class JarvisScreen extends StatefulWidget {
 }
 
 class _JarvisScreenState extends State<JarvisScreen> {
-  AgentProvider _selectedProvider = AgentProvider.groq; // Default to fast Groq SINRAS engine
+  AgentProvider _selectedProvider = AgentProvider.groq;
   final TextEditingController _commandController = TextEditingController();
 
-  bool _isListening = false;
-  bool _isThinking = false;
+  late stt.SpeechToText _speech;
+  late FlutterTts _flutterTts;
 
-  String _statusText = 'SINRAS PRO OS ONLINE · AWAITING COMMAND';
-  String _lastSpeechResponse = 'Good day, sir. SINRAS PRO Mobile Controller is active.';
+  bool _isListening = false;
+  bool _isSpeaking = false;
+  bool _isThinking = false;
+  bool _showTextInput = false;
+  bool _safetyOverlayActive = false;
+
+  String _statusText = 'SINRAS PRO OS ONLINE · AWAITING VOICE';
+  String _lastSpeechResponse = 'Hello! I am SINRAS, your cute AI assistant. Tap the Arc Reactor to speak to me!';
 
   final List<Map<String, dynamic>> _logs = [];
   final Map<AgentProvider, String> _apiKeys = {};
 
+  static const _overlayChannel = MethodChannel('sinras/overlay');
+
   @override
   void initState() {
     super.initState();
+    _speech = stt.SpeechToText();
+    _flutterTts = FlutterTts();
+    _initTts();
     _loadApiKeys();
   }
 
   @override
   void dispose() {
     _commandController.dispose();
+    _flutterTts.stop();
     super.dispose();
+  }
+
+  Future<void> _initTts() async {
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setSpeechRate(0.5); // Sweet, friendly, natural rate
+    await _flutterTts.setPitch(1.2);      // Cute female voice pitch
+
+    try {
+      await _flutterTts.setLanguage("en-US");
+    } catch (_) {}
+  }
+
+  Future<void> _speakText(String text) async {
+    if (text.isEmpty) return;
+    setState(() => _isSpeaking = true);
+
+    final isTamil = text.codeUnits.any((code) => code >= 0x0B80 && code <= 0x0BFF);
+    if (isTamil) {
+      await _flutterTts.setLanguage("ta-IN");
+    } else {
+      await _flutterTts.setLanguage("en-US");
+    }
+
+    await _flutterTts.speak(text);
+    _flutterTts.setCompletionHandler(() {
+      if (mounted) setState(() => _isSpeaking = false);
+    });
   }
 
   Future<void> _loadApiKeys() async {
@@ -52,18 +94,67 @@ class _JarvisScreenState extends State<JarvisScreen> {
     }
   }
 
-  void _toggleVoiceListening() {
-    setState(() {
-      _isListening = !_isListening;
-      _statusText = _isListening ? 'VOICE MATRIX ACTIVE · LISTENING...' : 'SINRAS PRO OS STANDBY';
-    });
-
+  Future<void> _toggleVoiceListening() async {
     if (_isListening) {
+      await _speech.stop();
+      setState(() {
+        _isListening = false;
+        _statusText = 'SINRAS PRO OS STANDBY';
+      });
+      return;
+    }
+
+    final available = await _speech.initialize(
+      onError: (val) => setState(() {
+        _isListening = false;
+        _statusText = 'SPEECH ERROR: ${val.errorMsg}';
+      }),
+      onStatus: (val) {
+        if (val == 'done' || val == 'notListening') {
+          if (mounted) setState(() => _isListening = false);
+        }
+      },
+    );
+
+    if (available) {
+      setState(() {
+        _isListening = true;
+        _statusText = 'VOICE MATRIX ACTIVE · LISTENING...';
+      });
+
+      _speech.listen(
+        onResult: (val) {
+          if (val.finalResult && val.recognizedWords.isNotEmpty) {
+            setState(() => _isListening = false);
+            _processCommand(val.recognizedWords);
+          }
+        },
+      );
+    } else {
+      setState(() {
+        _isListening = true;
+        _statusText = 'SIMULATED SPEECH LISTENER ACTIVE...';
+      });
+
       Future.delayed(const Duration(seconds: 3), () {
         if (!mounted || !_isListening) return;
         setState(() => _isListening = false);
         _processCommand('Run complete automated system diagnostics suite');
       });
+    }
+  }
+
+  Future<void> _toggleSafetyOverlay() async {
+    try {
+      if (_safetyOverlayActive) {
+        await _overlayChannel.invokeMethod('stopSafetyOverlay');
+        setState(() => _safetyOverlayActive = false);
+      } else {
+        await _overlayChannel.invokeMethod('startSafetyOverlay');
+        setState(() => _safetyOverlayActive = true);
+      }
+    } catch (e) {
+      debugPrint('Overlay error: $e');
     }
   }
 
@@ -75,6 +166,12 @@ class _JarvisScreenState extends State<JarvisScreen> {
   Future<void> _processCommand(String commandText) async {
     final cmd = commandText.trim();
     if (cmd.isEmpty) return;
+
+    // Check for explicit WhatsApp send commitment command
+    if (cmd.toLowerCase().contains('send') && cmd.toLowerCase().contains('whatsapp')) {
+      _showConfirmBeforeSendGateDialog('WhatsApp', 'Contact', cmd);
+      return;
+    }
 
     final apiKey = _apiKeys[_selectedProvider] ?? '';
     if (apiKey.isEmpty) {
@@ -114,6 +211,76 @@ class _JarvisScreenState extends State<JarvisScreen> {
           'time': DateTime.now(),
         });
       });
+
+      _speakText(response.speechText);
+    }
+  }
+
+  Future<void> _showConfirmBeforeSendGateDialog(String appName, String recipient, String messageContent) async {
+    final promptText = 'Should I send this message to $recipient on $appName?';
+    _speakText(promptText);
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        title: const Row(
+          children: [
+            Icon(Icons.shield_rounded, color: Color(0xFF00E5FF)),
+            SizedBox(width: 8),
+            Text('Confirm Before Send', style: TextStyle(color: Colors.white)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              promptText,
+              style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Content: "$messageContent"',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel / வேண்டாம்', style: TextStyle(color: Colors.redAccent)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF00E5FF), foregroundColor: Colors.black),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Send / சரி அனுப்பு'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await JarvisController.confirmAndSendClick();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Message sent with human confirmation.')),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Action cancelled.')),
+        );
+      }
     }
   }
 
@@ -205,6 +372,14 @@ class _JarvisScreenState extends State<JarvisScreen> {
         ),
         actions: [
           IconButton(
+            icon: Icon(
+              _safetyOverlayActive ? Icons.shield_rounded : Icons.shield_outlined,
+              color: _safetyOverlayActive ? Colors.greenAccent : const Color(0xFF00E5FF),
+            ),
+            tooltip: 'Toggle Persistent Safety Overlay',
+            onPressed: _toggleSafetyOverlay,
+          ),
+          IconButton(
             icon: const Icon(Icons.speed_rounded, color: Color(0xFF00E5FF)),
             tooltip: 'Run Auto-Test Suite',
             onPressed: _runAutoTestSequence,
@@ -282,13 +457,13 @@ class _JarvisScreenState extends State<JarvisScreen> {
           const SizedBox(height: 16),
           JarvisHudWidget(
             isListening: _isListening,
-            isSpeaking: false,
+            isSpeaking: _isSpeaking,
             isThinking: _isThinking,
             onTap: _toggleVoiceListening,
           ),
           const SizedBox(height: 8),
           Text(
-            _isListening ? 'TAP TO STOP LISTENING' : 'TAP HUD FOR VOICE COMMAND',
+            _isListening ? 'TAP TO STOP LISTENING' : 'TAP HUD TO SPEAK (PRIMARY VOICE MODE)',
             style: TextStyle(
               color: const Color(0xFF00E5FF).withAlpha(180),
               fontSize: 11,
@@ -299,7 +474,7 @@ class _JarvisScreenState extends State<JarvisScreen> {
 
           const SizedBox(height: 16),
 
-          // ── Speech Bubble ─────────────────────────────────────────────
+          // ── Speech Output Bubble ──────────────────────────────────────
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.all(12),
@@ -310,7 +485,11 @@ class _JarvisScreenState extends State<JarvisScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.volume_up_rounded, color: Color(0xFF00E5FF), size: 18),
+                Icon(
+                  _isSpeaking ? Icons.record_voice_over_rounded : Icons.volume_up_rounded,
+                  color: _isSpeaking ? Colors.pinkAccent : const Color(0xFF00E5FF),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -334,13 +513,14 @@ class _JarvisScreenState extends State<JarvisScreen> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
+                _buildActionChip('🛡️ Safety Overlay', _toggleSafetyOverlay),
                 _buildActionChip('⚙️ Settings', () {
                   JarvisController.executeAction('open_settings', {});
                 }),
                 _buildActionChip('📸 Camera', () {
                   JarvisController.executeAction('open_camera', {});
                 }),
-                _buildActionChip('📱 Launch Any App', () {
+                _buildActionChip('📱 Launch App', () {
                   _processCommand('Open Chrome browser app');
                 }),
                 _buildActionChip('📍 Maps', () {
@@ -352,9 +532,6 @@ class _JarvisScreenState extends State<JarvisScreen> {
                 _buildActionChip('✉️ SMS Composer', () {
                   JarvisController.executeAction('send_sms', {});
                 }),
-                _buildActionChip('⏰ Clock & Alarm', () {
-                  JarvisController.executeAction('open_alarm', {});
-                }),
                 _buildActionChip('⚡ Auto-Test Suite', _runAutoTestSequence),
                 _buildActionChip('🚪 Exit App', _confirmExitApp),
               ],
@@ -362,6 +539,35 @@ class _JarvisScreenState extends State<JarvisScreen> {
           ),
 
           const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: Text(
+                  'TERMINAL LOG',
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(120),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+              TextButton.icon(
+                icon: Icon(
+                  _showTextInput ? Icons.keyboard_hide_rounded : Icons.keyboard_rounded,
+                  size: 16,
+                  color: const Color(0xFF00E5FF),
+                ),
+                label: Text(
+                  _showTextInput ? 'Hide Text Input' : 'Optional Text Input',
+                  style: const TextStyle(color: Color(0xFF00E5FF), fontSize: 11),
+                ),
+                onPressed: () => setState(() => _showTextInput = !_showTextInput),
+              ),
+            ],
+          ),
           const Divider(color: Color(0xFF1E293B), height: 1),
 
           // ── SINRAS PRO Terminal Execution Log ──────────────────────────
@@ -425,24 +631,6 @@ class _JarvisScreenState extends State<JarvisScreen> {
                         log['text'].toString(),
                         style: const TextStyle(color: Colors.white, fontSize: 13),
                       ),
-                      if (action != null && action.message.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.black45,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '📱 Mobile OS Execution: ${action.message}',
-                            style: const TextStyle(
-                              color: Color(0xFF00E5FF),
-                              fontSize: 11,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 );
@@ -450,42 +638,43 @@ class _JarvisScreenState extends State<JarvisScreen> {
             ),
           ),
 
-          // ── Text Command Input Bar ─────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: const Color(0xFF060913),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _commandController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Enter command for SINRAS PRO...',
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      filled: true,
-                      fillColor: const Color(0xFF0F172A),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: const BorderSide(color: Color(0xFF00E5FF)),
+          // ── Collapsible Optional Text Command Input Bar ─────────────────
+          if (_showTextInput)
+            Container(
+              padding: const EdgeInsets.all(12),
+              color: const Color(0xFF060913),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _commandController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Type text command for SINRAS PRO...',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        filled: true,
+                        fillColor: const Color(0xFF0F172A),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: const BorderSide(color: Color(0xFF00E5FF)),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      onSubmitted: _processCommand,
                     ),
-                    onSubmitted: _processCommand,
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  style: IconButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E5FF),
-                    foregroundColor: Colors.black,
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    style: IconButton.styleFrom(
+                      backgroundColor: const Color(0xFF00E5FF),
+                      foregroundColor: Colors.black,
+                    ),
+                    icon: const Icon(Icons.send_rounded),
+                    onPressed: () => _processCommand(_commandController.text),
                   ),
-                  icon: const Icon(Icons.send_rounded),
-                  onPressed: () => _processCommand(_commandController.text),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example.synrasai" "\0"
-            VALUE "FileDescription", "synrasai" "\0"
+            VALUE "CompanyName", "com.example.sinras" "\0"
+            VALUE "FileDescription", "sinras" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "synrasai" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example.synrasai. All rights reserved." "\0"
-            VALUE "OriginalFilename", "synrasai.exe" "\0"
-            VALUE "ProductName", "synrasai" "\0"
+            VALUE "InternalName", "sinras" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.example.sinras. All rights reserved." "\0"
+            VALUE "OriginalFilename", "sinras.exe" "\0"
+            VALUE "ProductName", "sinras" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

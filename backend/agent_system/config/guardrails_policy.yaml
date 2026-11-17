@@ -1,0 +1,13 @@
+roles:
+  finance:
+    max_refund: 100000   # ₹1 Lakh limit
+    allowed_actions: [refund, email, calendar]
+  support:
+    max_refund: 5000
+    allowed_actions: [email, calendar]
+
+interrupt_rules:
+  - action: refund
+    condition: "amount > 10000"
+  - action: delete_record
+    condition: "always"

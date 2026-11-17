@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:synrasai/main.dart';
+import 'package:sinras/main.dart';
 
 void main() {
   testWidgets('SINRAS AI App smoke test - Logged Out state', (WidgetTester tester) async {

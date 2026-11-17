@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:synrasai/jarvis/jarvis_controller.dart';
-import 'package:synrasai/multi_agent/agent_provider.dart';
-import 'package:synrasai/multi_agent/multi_agent_type.dart';
+import 'package:sinras/jarvis/jarvis_controller.dart';
+import 'package:sinras/multi_agent/agent_provider.dart';
+import 'package:sinras/multi_agent/multi_agent_type.dart';
 
 void main() {
   group('SINRAS AI Multi-Agent & Provider Tests', () {
