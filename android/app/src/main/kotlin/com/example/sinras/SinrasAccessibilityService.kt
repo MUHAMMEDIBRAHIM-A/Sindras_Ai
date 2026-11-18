@@ -65,7 +65,7 @@ class SinrasAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Set text in active input field.
+     * Set text in active input field by matching hint/content description/text or first editable field.
      */
     fun setInputText(textQuery: String, textToSet: String): Boolean {
         val rootNode = rootInActiveWindow ?: return false
@@ -81,11 +81,25 @@ class SinrasAccessibilityService : AccessibilityService() {
     }
 
     /**
+     * Scroll active container forward.
+     */
+    fun scrollForward(): Boolean {
+        val rootNode = rootInActiveWindow ?: return false
+        return rootNode.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+    }
+
+    /**
+     * Scroll active container backward.
+     */
+    fun scrollBackward(): Boolean {
+        val rootNode = rootInActiveWindow ?: return false
+        return rootNode.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
+    }
+
+    /**
      * Reliable WhatsApp / Messaging Workflow: Search contact and prepare text without hitting send.
      */
     fun prepareWhatsAppMessage(contactName: String, messageText: String): Boolean {
-        val rootNode = rootInActiveWindow ?: return false
-
         // Search contact
         clickNodeByText("Search")
         setInputText("Search", contactName)

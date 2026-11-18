@@ -81,7 +81,11 @@ class MainActivity : FlutterActivity() {
                 }
                 "startCallBubble" -> {
                     val intent = Intent(this, CallOverlayService::class.java)
-                    startService(intent)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        startForegroundService(intent)
+                    } else {
+                        startService(intent)
+                    }
                     result.success(true)
                 }
                 else -> result.notImplemented()
@@ -148,10 +152,40 @@ class MainActivity : FlutterActivity() {
                     val success = service.prepareWhatsAppMessage(contact, message)
                     result.success(success)
                 }
-                "clickByText" -> {
+                "clickNodeByText", "clickByText" -> {
                     val text = call.argument<String>("text") ?: ""
                     val success = service.clickNodeByText(text)
                     result.success(success)
+                }
+                "setInputText" -> {
+                    val query = call.argument<String>("query") ?: call.argument<String>("text") ?: ""
+                    val textToSet = call.argument<String>("value") ?: call.argument<String>("textToSet") ?: ""
+                    val success = service.setInputText(query, textToSet)
+                    result.success(success)
+                }
+                "scrollForward" -> {
+                    val success = service.scrollForward()
+                    result.success(success)
+                }
+                "scrollBackward" -> {
+                    val success = service.scrollBackward()
+                    result.success(success)
+                }
+                "toggleWifi" -> {
+                    val enable = call.argument<Boolean>("enable") ?: false
+                    val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                        @Suppress("DEPRECATION")
+                        wifiManager.isWifiEnabled = enable
+                        result.success(true)
+                    } else {
+                        startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                        result.success(true)
+                    }
+                }
+                "toggleBluetooth" -> {
+                    startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }
