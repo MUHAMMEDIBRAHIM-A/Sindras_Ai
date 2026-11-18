@@ -1,27 +1,16 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
-import 'services/auth_service.dart';
+import 'screens/entrance_gate_screen.dart';
 import 'theme/theme_notifier.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Check initial authentication state
-  final loggedIn = await AuthService.isLoggedIn();
-
-  runApp(SinrasAiApp(initialLoggedIn: loggedIn));
+  runApp(const SinrasAiApp());
 }
 
 class SinrasAiApp extends StatefulWidget {
-  final bool initialLoggedIn;
   final ThemeNotifier? themeNotifier;
 
-  const SinrasAiApp({
-    super.key,
-    required this.initialLoggedIn,
-    this.themeNotifier,
-  });
+  const SinrasAiApp({super.key, this.themeNotifier});
 
   @override
   State<SinrasAiApp> createState() => _SinrasAiAppState();
@@ -57,7 +46,7 @@ class _SinrasAiAppState extends State<SinrasAiApp> {
     } else if (currentMode == AppThemeMode.night) {
       activeTheme = ThemeNotifier.nightTheme;
     } else {
-      // System Auto-Mode: Check system brightness or default to night
+      // System Auto-Mode: Follow system or soft charcoal
       final platformBrightness = MediaQuery.platformBrightnessOf(context);
       activeTheme = platformBrightness == Brightness.light
           ? ThemeNotifier.morningTheme
@@ -65,12 +54,10 @@ class _SinrasAiAppState extends State<SinrasAiApp> {
     }
 
     return MaterialApp(
-      title: 'SINRAS AI',
+      title: 'SINRAS PRO AI',
       debugShowCheckedModeBanner: false,
       theme: activeTheme,
-      home: widget.initialLoggedIn
-          ? HomeScreen(themeNotifier: _themeNotifier)
-          : const LoginScreen(),
+      home: const EntranceGateScreen(),
     );
   }
 }

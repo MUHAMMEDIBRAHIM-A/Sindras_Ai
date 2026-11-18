@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../theme/theme_notifier.dart';
+import '../utils/responsive_layout.dart';
 
 class AllowedAppsScreen extends StatefulWidget {
   const AllowedAppsScreen({super.key});
@@ -71,30 +73,44 @@ class _AllowedAppsScreenState extends State<AllowedAppsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0B101D),
+    final isNight = Theme.of(context).brightness == Brightness.dark;
+    final primary = isNight ? CyberPalette.nightPrimary : CyberPalette.morningPrimary;
+    final cardBg = isNight ? CyberPalette.nightCard : CyberPalette.morningCard;
+    final borderCol = isNight ? CyberPalette.nightBorder : CyberPalette.morningBorder;
+    final textPri = isNight ? CyberPalette.nightTextPrimary : CyberPalette.morningTextPrimary;
+    final textSec = isNight ? CyberPalette.nightTextSecondary : CyberPalette.morningTextSecondary;
+
+    return ResponsiveLayout.screenScaffold(
+      context: context,
+      backgroundColor: isNight ? CyberPalette.nightScaffold : CyberPalette.morningScaffold,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF060913),
-        title: const Text(
-          'Allowed Apps (Zero-Trust)',
-          style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+        title: Text(
+          'ALLOWED APPS (ZERO-TRUST)',
+          style: TextStyle(
+            fontSize: ResponsiveLayout.scale(context, 14),
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
+          ),
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF)))
+          ? Center(child: CircularProgressIndicator(color: primary))
           : Column(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  color: const Color(0xFF0F172A),
-                  child: const Row(
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    border: Border(bottom: BorderSide(color: borderCol)),
+                  ),
+                  child: Row(
                     children: [
-                      Icon(Icons.shield_rounded, color: Color(0xFF00E5FF), size: 18),
-                      SizedBox(width: 8),
+                      Icon(Icons.shield_rounded, color: primary, size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'SINRAS PRO AI will ONLY automate apps toggled ON below. Banking & UPI payment apps are locked for security.',
-                          style: TextStyle(color: Colors.white70, fontSize: 11),
+                          'SINRAS PRO AI will ONLY automate apps toggled ON below. Banking, UPI, and payment apps are locked permanently for security.',
+                          style: TextStyle(color: textSec, fontSize: 11),
                         ),
                       ),
                     ],
@@ -102,8 +118,9 @@ class _AllowedAppsScreenState extends State<AllowedAppsScreen> {
                 ),
                 Expanded(
                   child: ListView.separated(
+                    padding: ResponsiveLayout.pagePadding(context),
                     itemCount: _installedApps.length,
-                    separatorBuilder: (context, index) => const Divider(color: Color(0xFF1E293B), height: 1),
+                    separatorBuilder: (context, index) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final app = _installedApps[index];
                       final name = app['name'] as String;
@@ -111,36 +128,55 @@ class _AllowedAppsScreenState extends State<AllowedAppsScreen> {
                       final isLocked = app['isLocked'] as bool;
                       final isAllowed = _allowedState[pkg] ?? false;
 
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isLocked ? Colors.red.withAlpha(40) : const Color(0xFF00E5FF).withAlpha(30),
-                          child: Icon(
-                            isLocked ? Icons.lock_rounded : Icons.android_rounded,
-                            color: isLocked ? Colors.redAccent : const Color(0xFF00E5FF),
-                            size: 20,
-                          ),
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: borderCol),
                         ),
-                        title: Text(
-                          name,
-                          style: TextStyle(
-                            color: isLocked ? Colors.white54 : Colors.white,
-                            fontWeight: FontWeight.w600,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: isLocked ? Colors.red.withAlpha(30) : primary.withAlpha(25),
+                            child: Icon(
+                              isLocked ? Icons.lock_rounded : Icons.android_rounded,
+                              color: isLocked ? Colors.redAccent : primary,
+                              size: 20,
+                            ),
                           ),
-                        ),
-                        subtitle: Text(
-                          isLocked ? '🔒 Locked - Privacy & Payment Protected' : pkg,
-                          style: TextStyle(
-                            color: isLocked ? Colors.redAccent : Colors.white38,
-                            fontSize: 11,
+                          title: Text(
+                            name,
+                            style: TextStyle(
+                              color: isLocked ? textSec : textPri,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
+                          subtitle: Text(
+                            isLocked ? '🔒 Locked - Privacy & Payment Protected' : pkg,
+                            style: TextStyle(
+                              color: isLocked ? Colors.redAccent : textSec,
+                              fontSize: 11,
+                            ),
+                          ),
+                          trailing: isLocked
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withAlpha(25),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.redAccent),
+                                  ),
+                                  child: const Text(
+                                    'LOCKED',
+                                    style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                                  ),
+                                )
+                              : Switch(
+                                  value: isAllowed,
+                                  activeThumbColor: primary,
+                                  onChanged: (val) => _toggleAppPermission(pkg, val),
+                                ),
                         ),
-                        trailing: isLocked
-                            ? const Text('LOCKED', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold))
-                            : Switch(
-                                value: isAllowed,
-                                activeThumbColor: const Color(0xFF00E5FF),
-                                onChanged: (val) => _toggleAppPermission(pkg, val),
-                              ),
                       );
                     },
                   ),

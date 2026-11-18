@@ -18,9 +18,28 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class CreateTrialRequest(BaseModel):
+    email: EmailStr
+    phone: str
+
+
+class AgentIdLoginRequest(BaseModel):
+    agent_id: str
+
+
+class OwnerReviewRequest(BaseModel):
+    agent_id: str
+    action: str = "approve"  # "approve" or "reject"
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    status: str = "APPROVED"
+    is_owner: bool = False
+    agent_id: str | None = None
+    trial_expires_at: str | None = None
+    message: str | None = None
 
 
 class UserResponse(BaseModel):

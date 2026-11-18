@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import '../jarvis/jarvis_screen.dart';
 import '../multi_agent/multi_agent_screen.dart';
+import '../screens/agent_auth_screen.dart';
+import '../screens/allowed_apps_screen.dart';
 import '../screens/chat_history_screen.dart';
+import '../screens/dashboard_screen.dart';
 import '../screens/documents_screen.dart';
-import '../screens/home_screen.dart';
 import '../screens/settings_screen.dart';
+import '../screens/weekly_data_screen.dart';
+import '../services/agent_auth_service.dart';
 import '../theme/theme_notifier.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -14,49 +18,65 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isNight = Theme.of(context).brightness == Brightness.dark;
+    final primary = isNight ? CyberPalette.nightPrimary : CyberPalette.morningPrimary;
+    final secondary = isNight ? CyberPalette.nightSecondary : CyberPalette.morningSecondary;
+    final bg = isNight ? CyberPalette.nightCard : CyberPalette.morningCard;
+    final borderCol = isNight ? CyberPalette.nightBorder : CyberPalette.morningBorder;
+    final textPri = isNight ? CyberPalette.nightTextPrimary : CyberPalette.morningTextPrimary;
+    final textSec = isNight ? CyberPalette.nightTextSecondary : CyberPalette.morningTextSecondary;
+
     return Drawer(
-      backgroundColor: const Color(0xFF0B101D),
+      backgroundColor: bg,
       child: Column(
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(
-              color: Color(0xFF060913),
-              border: Border(bottom: BorderSide(color: Color(0xFF00E5FF), width: 0.5)),
+            decoration: BoxDecoration(
+              color: isNight ? CyberPalette.nightScaffold : CyberPalette.morningScaffold,
+              border: Border(bottom: BorderSide(color: borderCol, width: 1)),
             ),
             child: Row(
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 52,
+                  height: 52,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00E5FF).withAlpha(30),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF00E5FF), width: 1.5),
+                    border: Border.all(color: primary, width: 2),
+                    boxShadow: [
+                      BoxShadow(color: primary.withValues(alpha: 0.3), blurRadius: 10),
+                    ],
                   ),
-                  child: const Center(
-                    child: Text('🤖', style: TextStyle(fontSize: 22)),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/sinras_logo.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Image.asset('assets/logo.png', fit: BoxFit.cover),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'SINRAS PRO AI',
-                      style: TextStyle(
-                        color: Color(0xFF00E5FF),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        letterSpacing: 1.2,
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SINRAS PRO AI',
+                        style: TextStyle(
+                          color: textPri,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          letterSpacing: 1.2,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Autonomous OS Assistant',
-                      style: TextStyle(color: Colors.white54, fontSize: 11),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Cyber-Cat Neural OS',
+                        style: TextStyle(color: textSec, fontSize: 11),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -65,13 +85,36 @@ class AppDrawer extends StatelessWidget {
           // ── Navigation Items ──────────────────────────────────────────────
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               children: [
                 _buildMenuItem(
                   context,
-                  icon: Icons.mic_rounded,
+                  icon: Icons.dashboard_rounded,
+                  title: 'Command Center',
+                  color: primary,
+                  textPri: textPri,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen()));
+                  },
+                ),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.calendar_month_rounded,
+                  title: 'Weekly Task Matrix',
+                  color: secondary,
+                  textPri: textPri,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const WeeklyDataScreen()));
+                  },
+                ),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.graphic_eq_rounded,
                   title: 'New Chat / Voice HUD',
-                  color: const Color(0xFF00E5FF),
+                  color: primary,
+                  textPri: textPri,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const JarvisScreen()));
@@ -82,6 +125,7 @@ class AppDrawer extends StatelessWidget {
                   icon: Icons.hub_rounded,
                   title: 'Multi-Agent Matrix (17 Cores)',
                   color: Colors.purpleAccent,
+                  textPri: textPri,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const MultiAgentScreen()));
@@ -90,8 +134,9 @@ class AppDrawer extends StatelessWidget {
                 _buildMenuItem(
                   context,
                   icon: Icons.history_rounded,
-                  title: 'Chat History',
+                  title: 'Chat & Voicemail Logs',
                   color: Colors.amberAccent,
+                  textPri: textPri,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatHistoryScreen()));
@@ -100,25 +145,59 @@ class AppDrawer extends StatelessWidget {
                 _buildMenuItem(
                   context,
                   icon: Icons.folder_special_rounded,
-                  title: 'Media & Documents / Tools',
+                  title: 'Media & Documents',
                   color: Colors.greenAccent,
+                  textPri: textPri,
                   onTap: () {
                     Navigator.pop(context);
                     Navigator.push(context, MaterialPageRoute(builder: (_) => const DocumentsScreen()));
                   },
                 ),
-                const Divider(color: Color(0xFF1E293B), height: 24),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.lock_clock_rounded,
+                  title: 'Allowed Apps Whitelist',
+                  color: Colors.orangeAccent,
+                  textPri: textPri,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AllowedAppsScreen()));
+                  },
+                ),
+                Divider(color: borderCol, height: 20),
                 _buildMenuItem(
                   context,
                   icon: Icons.security_rounded,
                   title: 'Settings & Security Hub',
-                  color: const Color(0xFF00E5FF),
+                  color: secondary,
+                  textPri: textPri,
                   onTap: () {
                     Navigator.pop(context);
-                    if (themeNotifier != null) {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsScreen(themeNotifier: themeNotifier!)));
-                    } else {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SettingsScreen(
+                          themeNotifier: themeNotifier ?? ThemeNotifier(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                _buildMenuItem(
+                  context,
+                  icon: Icons.logout_rounded,
+                  title: 'Lock Session Now',
+                  color: Colors.redAccent,
+                  textPri: textPri,
+                  onTap: () async {
+                    Navigator.pop(context);
+                    await AgentAuthService.clearSession();
+                    if (context.mounted) {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AgentAuthScreen()),
+                        (route) => false,
+                      );
                     }
                   },
                 ),
@@ -128,13 +207,16 @@ class AppDrawer extends StatelessWidget {
 
           // ── Footer ────────────────────────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(16),
-            color: const Color(0xFF060913),
-            child: const Row(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: isNight ? CyberPalette.nightScaffold : CyberPalette.morningScaffold,
+              border: Border(top: BorderSide(color: borderCol, width: 1)),
+            ),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('VERSION 1.0.0+1', style: TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'monospace')),
-                Text('SINRAS PRO OS', style: TextStyle(color: Color(0xFF00E5FF), fontSize: 10, fontWeight: FontWeight.bold)),
+                Text('v1.0.0+1', style: TextStyle(color: textSec, fontSize: 11, fontFamily: 'monospace')),
+                Text('SINRAS PRO OS', style: TextStyle(color: primary, fontSize: 11, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -148,15 +230,17 @@ class AppDrawer extends StatelessWidget {
     required IconData icon,
     required String title,
     required Color color,
+    required Color textPri,
     required VoidCallback onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: color, size: 22),
+      dense: true,
+      leading: Icon(icon, color: color, size: 20),
       title: Text(
         title,
-        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+        style: TextStyle(color: textPri, fontSize: 12.5, fontWeight: FontWeight.w600),
       ),
-      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 18),
+      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 16),
       onTap: onTap,
     );
   }

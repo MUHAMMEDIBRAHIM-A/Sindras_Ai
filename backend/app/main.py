@@ -52,11 +52,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers
+# Register routers (both with and without /api/v1 prefix for full compatibility)
 app.include_router(auth_router)
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(documents_router)
+app.include_router(documents_router, prefix="/api/v1")
 app.include_router(rag_router)
+app.include_router(rag_router, prefix="/api/v1")
 app.include_router(agent_router)
+app.include_router(agent_router, prefix="/api/v1")
 
 
 @app.get("/")

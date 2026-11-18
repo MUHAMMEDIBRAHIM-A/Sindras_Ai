@@ -120,3 +120,18 @@ class ChatMessage(Base):
 
     # Relationships
     session: Mapped["ChatSession"] = relationship(back_populates="messages")
+
+
+class AgentRegistration(Base):
+    __tablename__ = "agent_registrations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(as_uuid=True), primary_key=True, default=_new_uuid
+    )
+    email: Mapped[str] = mapped_column(String(320), nullable=False, index=True)
+    phone: Mapped[str] = mapped_column(String(30), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), default="TRIAL")  # TRIAL, APPROVED, REJECTED
+    assigned_agent_id: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
+    trial_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
