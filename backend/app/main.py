@@ -24,7 +24,8 @@ async def lifespan(app: FastAPI):
     """
     try:
         async with engine.begin() as conn:
-            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            if engine.dialect.name == "postgresql":
+                await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             await conn.run_sync(Base.metadata.create_all)
     except Exception as e:
         print(f"Warning: Database initialization skipped or deferred: {e}")

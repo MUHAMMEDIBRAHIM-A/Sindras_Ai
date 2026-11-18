@@ -43,6 +43,19 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+.gradle/
+android/build/
+local.properties
+
+# Python & Backend
+.venv/
+__pycache__/
+*.pyo
+backend/.env
+backend/.venv/
+*.db
+*.sqlite3
+backend/synras_local.db
 
 # Widget Preview related
 .widget_preview/

@@ -103,7 +103,7 @@ class _AllowedAppsScreenState extends State<AllowedAppsScreen> {
                 Expanded(
                   child: ListView.separated(
                     itemCount: _installedApps.length,
-                    separatorBuilder: (_, __) => const Divider(color: Color(0xFF1E293B), height: 1),
+                    separatorBuilder: (context, index) => const Divider(color: Color(0xFF1E293B), height: 1),
                     itemBuilder: (context, index) {
                       final app = _installedApps[index];
                       final name = app['name'] as String;
@@ -138,7 +138,7 @@ class _AllowedAppsScreenState extends State<AllowedAppsScreen> {
                             ? const Text('LOCKED', style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold))
                             : Switch(
                                 value: isAllowed,
-                                activeColor: const Color(0xFF00E5FF),
+                                activeThumbColor: const Color(0xFF00E5FF),
                                 onChanged: (val) => _toggleAppPermission(pkg, val),
                               ),
                       );

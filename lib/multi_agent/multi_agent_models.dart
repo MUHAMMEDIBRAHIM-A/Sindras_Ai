@@ -1,3 +1,6 @@
+import 'agent_provider.dart';
+import 'multi_agent_type.dart';
+
 /// Keys for storing API keys in secure storage.
 class MultiAgentKeys {
   MultiAgentKeys._();
@@ -37,4 +40,23 @@ class MultiAgentMessage {
     if (outputTokens != null) parts.add('↓$outputTokens');
     return parts.join(' ');
   }
+}
+
+/// Multi-Agent Chat Session Model.
+class MultiAgentSession {
+  final String id;
+  final String title;
+  final MultiAgentType agentType;
+  final AgentProvider provider;
+  final List<MultiAgentMessage> messages;
+  final DateTime createdAt;
+
+  MultiAgentSession({
+    required this.id,
+    required this.title,
+    required this.agentType,
+    required this.provider,
+    required this.messages,
+    required this.createdAt,
+  });
 }

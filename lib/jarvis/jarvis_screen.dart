@@ -5,6 +5,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../multi_agent/agent_provider.dart';
 import '../multi_agent/multi_agent_models.dart';
 import '../multi_agent/multi_agent_storage.dart';
+import '../widgets/app_drawer.dart';
 import 'jarvis_agent_service.dart';
 import 'jarvis_controller.dart';
 import 'jarvis_hud.dart';
@@ -343,6 +344,7 @@ class _JarvisScreenState extends State<JarvisScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B101D),
+      drawer: const AppDrawer(),
       appBar: AppBar(
         backgroundColor: const Color(0xFF060913),
         elevation: 0,

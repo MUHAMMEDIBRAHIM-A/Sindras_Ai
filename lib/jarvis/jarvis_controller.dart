@@ -22,8 +22,6 @@ class JarvisActionResult {
 /// Handles Android/iOS system actions, package app launchers, zero-trust whitelisting,
 /// Accessibility Service automation, and exit controls.
 class JarvisController {
-  static const _privacyChannel = MethodChannel('sinras/privacy');
-  static const _appsChannel = MethodChannel('sinras/apps');
   static const _automationChannel = MethodChannel('sinras/automation');
 
   /// Exit application cleanly.
@@ -33,7 +31,7 @@ class JarvisController {
 
   /// Check if a package is whitelisted in Allowed Apps and not a banking/payment app.
   static Future<bool> isPackageAllowed(String packageName) async {
-    final lower = packageName.lowercase;
+    final lower = packageName.toLowerCase();
     if (lower.contains('gpay') ||
         lower.contains('phonepe') ||
         lower.contains('paytm') ||

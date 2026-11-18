@@ -41,6 +41,15 @@ class MainActivity : FlutterActivity() {
                     startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
                     result.success(true)
                 }
+                "openVoiceInputSettings" -> {
+                    try {
+                        startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS))
+                        result.success(true)
+                    } catch (e: Exception) {
+                        startActivity(Intent(Settings.ACTION_SETTINGS))
+                        result.success(true)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

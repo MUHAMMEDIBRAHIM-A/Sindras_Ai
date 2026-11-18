@@ -1,3 +1,6 @@
+import os
+import json
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_DATASET_PATH = os.path.join(BASE_DIR, "config", "eval_dataset.jsonl")
 

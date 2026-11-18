@@ -3,6 +3,7 @@ import '../jarvis/jarvis_screen.dart';
 import '../multi_agent/multi_agent_screen.dart';
 import '../services/auth_service.dart';
 import '../theme/theme_notifier.dart';
+import '../widgets/app_drawer.dart';
 import 'documents_screen.dart';
 import 'login_screen.dart';
 import 'rag_chat_screen.dart';
@@ -72,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: AppDrawer(themeNotifier: _notifier),
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
